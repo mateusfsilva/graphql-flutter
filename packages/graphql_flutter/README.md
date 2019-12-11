@@ -21,11 +21,12 @@
     - [Normalization](#normalization)
     - [Optimism](#optimism)
   - [Queries](#queries)
+    - [Fetch More (Pagination)](#fetch-more-pagination)
   - [Mutations](#mutations)
     - [Mutations with optimism](#mutations-with-optimism)
   - [Subscriptions (Experimental)](#subscriptions-experimental)
   - [GraphQL Consumer](#graphql-consumer)
-  - [Graphql Upload](#graphql-upload)
+  - [GraphQL Upload](#graphql-upload)
 - [Roadmap](#roadmap)
 
 ## Installation
@@ -34,7 +35,7 @@ First, depends on the library by adding this to your packages `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  graphql_flutter: ^1.0.0
+  graphql_flutter: ^2.0.0
 ```
 
 Now inside your Dart code, you can import it.
@@ -65,7 +66,7 @@ void main() {
     // getToken: () => 'Bearer <YOUR_PERSONAL_ACCESS_TOKEN>',
   );
 
-  final Link link = authLink.concat(httpLink as Link);
+  final Link link = authLink.concat(httpLink);
 
   ValueNotifier<GraphQLClient> client = ValueNotifier(
     GraphQLClient(
@@ -200,7 +201,8 @@ Query(
     pollInterval: 10,
   ),
   // Just like in apollo refetch() could be used to manually trigger a refetch
-  builder: (QueryResult result, { VoidCallback refetch }) {
+  // while fetchMore() can be used for pagination purpose
+  builder: (QueryResult result, { VoidCallback refetch, FetchMore fetchMore }) {
     if (result.errors != null) {
       return Text(result.errors.toString());
     }
@@ -222,6 +224,56 @@ Query(
   },
 );
 // ...
+```
+
+#### Fetch More (Pagination)
+
+You can use `fetchMore()` function inside `Query` Builder to perform pagination. The `fetchMore()` function allows you to run an entirely new GraphQL operation and merge the new results with the original results. On top of that, you can re-use aspects of the Original query i.e. the Query or some of the Variables.
+
+In order to use the `FetchMore()` function, you will need to first define `FetchMoreOptions` variable for the new query.
+
+```dart
+...
+// this is returned by the GitHubs GraphQL API for pagination purpose
+final Map pageInfo = result.data['search']['pageInfo'];
+final String fetchMoreCursor = pageInfo['endCursor'];
+
+FetchMoreOptions opts = FetchMoreOptions(
+  variables: {'cursor': fetchMoreCursor},
+  updateQuery: (previousResultData, fetchMoreResultData) {
+    // this function will be called so as to combine both the original and fetchMore results
+    // it allows you to combine them as you would like
+    final List<dynamic> repos = [
+      ...previousResultData['search']['nodes'] as List<dynamic>,
+      ...fetchMoreResultData['search']['nodes'] as List<dynamic>
+    ];
+
+    // to avoid a lot of work, lets just update the list of repos in returned
+    // data with new data, this also ensure we have the endCursor already set
+    // correctly
+    fetchMoreResultData['search']['nodes'] = repos;
+
+    return fetchMoreResultData;
+  },
+);
+
+...
+```
+
+And then, call the `fetchMore()` function and pass the `FetchMoreOptions` variable you defined above.
+
+```dart
+RaisedButton(
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: <Widget>[
+      Text("Load More"),
+    ],
+  ),
+  onPressed: () {
+    fetchMore(opts);
+  },
+)
 ```
 
 ### Mutations
@@ -464,14 +516,14 @@ This is currently our roadmap, please feel free to request additions/changes.
 
 | Feature                 | Progress |
 | :---------------------- | :------: |
-| Queries                 |    ✅    |
-| Mutations               |    ✅    |
-| Subscriptions           |    ✅    |
-| Query polling           |    ✅    |
-| In memory cache         |    ✅    |
-| Offline cache sync      |    ✅    |
-| GraphQL pload           |    ✅    |
-| Optimistic results      |    ✅    |
+| Queries                 |    ✅     |
+| Mutations               |    ✅     |
+| Subscriptions           |    ✅     |
+| Query polling           |    ✅     |
+| In memory cache         |    ✅     |
+| Offline cache sync      |    ✅     |
+| GraphQL pload           |    ✅     |
+| Optimistic results      |    ✅     |
 | Client state management |    🔜    |
 | Modularity              |    🔜    |
 

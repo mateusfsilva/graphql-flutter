@@ -18,7 +18,7 @@ First, depend on this package:
 
 ```yaml
 dependencies:
-  graphql: ^1.0.1-beta
+  graphql: ^2.0.0
 ```
 
 And then import it inside your dart code:
@@ -44,7 +44,7 @@ final AuthLink _authLink = AuthLink(
     getToken: () async => 'Bearer $YOUR_PERSONAL_ACCESS_TOKEN',
 );
 
-final Link _link = _authLink.concat(_httpLink as Link);
+final Link _link = _authLink.concat(_httpLink);
 
 final GraphQLClient _client = GraphQLClient(
         cache: InMemoryCache(),
@@ -114,7 +114,7 @@ final List<dynamic> repositories =
 
 ### Mutations
 
-Creating a Matation is also similar to creating a query, with a small difference. First, start with a multiline string:
+Creating a Mutation is also similar to creating a query, with a small difference. First, start with a multiline string:
 
 ```dart
 const String addStar = r'''
